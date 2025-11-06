@@ -1,0 +1,7 @@
+Flask==3.0.0
+Werkzeug==3.0.1
+mysql-connector-python==8.2.0
+selenium==4.15.2
+webdriver-manager==4.0.1
+Pillow==10.1.0
+

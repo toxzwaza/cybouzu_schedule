@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スケジュール検索システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        select, input[type="text"], input[type="date"] {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-search {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-reset {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-reset:hover {
+            background: #e0e0e0;
+        }
+
+        .results-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .results-count {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.1em;
+        }
+
+        .event-card {
+            background: #f9f9f9;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s;
+        }
+
+        .event-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .event-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .badge.empty {
+            background: #999;
+        }
+
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-icon {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .detail-text {
+            color: #666;
+        }
+
+        .participants {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .participants-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .participants-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .participant-tag {
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .event-link {
+            margin-top: 15px;
+        }
+
+        .event-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+        }
+
+        .event-link a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .search-form {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                gap: 15px;
+            }
+
+            .stat-item {
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📅 スケジュール検索システム</h1>
+            </div>
+            <div>
+                <a href="/booking" class="btn btn-primary" style="padding: 12px 25px; text-decoration: none; display: inline-block; background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%); color: white; border-radius: 8px; font-weight: 600;">
+                    ➕ 新規予約
+                </a>
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 30px;">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalFacilities">-</div>
+                    <div class="stat-label">施設数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalDates">-</div>
+                    <div class="stat-label">日付数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalEvents">-</div>
+                    <div class="stat-label">予定数</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <form id="searchForm" class="search-form">
+                <div class="form-group">
+                    <label for="facility">🏢 施設</label>
+                    <select id="facility" name="facility">
+                        <option value="all">すべての施設</option>
+                        {% for facility in facilities %}
+                        <option value="{{ facility }}">{{ facility }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">📆 日付</label>
+                    <select id="date" name="date">
+                        <option value="">すべての日付</option>
+                        {% for date in dates %}
+                        <option value="{{ date }}">{{ date }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="keyword">🔍 キーワード</label>
+                    <input type="text" id="keyword" name="keyword" placeholder="タイトルやバッジで検索">
+                </div>
+
+                <div class="form-group">
+                    <label for="participant">👤 参加者</label>
+                    <input type="text" id="participant" name="participant" placeholder="参加者名で検索">
+                </div>
+            </form>
+
+            <div class="button-group">
+                <button type="button" class="btn-search" onclick="search()">検索</button>
+                <button type="button" class="btn-reset" onclick="reset()">リセット</button>
+            </div>
+        </div>
+
+        <div class="results-box">
+            <div class="results-header">
+                <div class="results-count" id="resultsCount">検索結果: 0件</div>
+            </div>
+            <div id="results">
+                <div class="no-results">検索条件を指定して検索ボタンを押してください</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 統計情報を読み込む
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalFacilities').textContent = data.stats.total_facilities;
+                    document.getElementById('totalDates').textContent = data.stats.total_dates;
+                    document.getElementById('totalEvents').textContent = data.stats.total_events;
+                }
+            } catch (error) {
+                console.error('統計情報の読み込みエラー:', error);
+            }
+        }
+
+        // 検索実行
+        async function search() {
+            const facility = document.getElementById('facility').value;
+            const date = document.getElementById('date').value;
+            const keyword = document.getElementById('keyword').value;
+            const participant = document.getElementById('participant').value;
+
+            // ローディング表示
+            document.getElementById('results').innerHTML = '<div class="loading">検索中...</div>';
+
+            try {
+                const params = new URLSearchParams({
+                    facility: facility,
+                    date: date,
+                    keyword: keyword,
+                    participant: participant
+                });
+
+                const response = await fetch(`/api/search?${params}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data.results, data.count);
+                }
+            } catch (error) {
+                console.error('検索エラー:', error);
+                document.getElementById('results').innerHTML = '<div class="no-results">エラーが発生しました</div>';
+            }
+        }
+
+        // 検索結果を表示
+        function displayResults(results, count) {
+            const resultsDiv = document.getElementById('results');
+            const countDiv = document.getElementById('resultsCount');
+
+            countDiv.textContent = `検索結果: ${count}件`;
+
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">該当する予定が見つかりませんでした</div>';
+                return;
+            }
+
+            let html = '';
+            results.forEach(event => {
+                const badge = event.badge ? `<span class="badge">${event.badge}</span>` : '<span class="badge empty">-</span>';
+                
+                const participants = event.participants && event.participants.length > 0
+                    ? `<div class="participants">
+                        <div class="participants-label">👥 参加者:</div>
+                        <div class="participants-list">
+                            ${event.participants.map(p => `<span class="participant-tag">${p}</span>`).join('')}
+                        </div>
+                       </div>`
+                    : '';
+
+                html += `
+                    <div class="event-card">
+                        <div class="event-header">
+                            <div class="event-title">${event.title}</div>
+                            ${badge}
+                        </div>
+                        <div class="event-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">🏢</span>
+                                <span class="detail-text">${event.facility}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📆</span>
+                                <span class="detail-text">${event.date}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">⏰</span>
+                                <span class="detail-text">${event.start_time} - ${event.end_time}</span>
+                            </div>
+                        </div>
+                        ${participants}
+                        <div class="event-link">
+                            <a href="${event.url}" target="_blank">詳細を見る →</a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // リセット
+        function reset() {
+            document.getElementById('searchForm').reset();
+            document.getElementById('results').innerHTML = '<div class="no-results">検索条件を指定して検索ボタンを押してください</div>';
+            document.getElementById('resultsCount').textContent = '検索結果: 0件';
+        }
+
+        // Enterキーで検索
+        document.getElementById('searchForm').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                search();
+            }
+        });
+
+        // ページ読み込み時に統計情報を取得
+        window.addEventListener('load', loadStats);
+    </script>
+</body>
+</html>
+

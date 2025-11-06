@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>施設予約システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2em;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        select, input[type="date"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .calendar-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-occupied {
+            background: #ff6b6b;
+        }
+
+        .legend-selected {
+            background: #4dabf7;
+        }
+
+        .legend-available {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .time-labels {
+            border-right: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .time-slot-label {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+            color: #666;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 500;
+        }
+
+        .schedule-area {
+            position: relative;
+        }
+
+        .time-slot {
+            height: 60px;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+            background: #fafafa;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .time-slot:hover:not(.occupied) {
+            background: #e3f2fd;
+        }
+
+        .time-slot.occupied {
+            background: #ff6b6b;
+            cursor: not-allowed;
+        }
+
+        .time-slot.selected {
+            background: #4dabf7;
+        }
+
+        .event-block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            background: #ff6b6b;
+            color: white;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .event-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .event-time {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .event-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            margin-top: 4px;
+        }
+
+        .selection-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #4dabf7;
+        }
+
+        .selection-info-title {
+            font-weight: 600;
+            color: #1976d2;
+            margin-bottom: 8px;
+        }
+
+        .selection-details {
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .booking-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .booking-form h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn-book {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .btn-book:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(81, 207, 102, 0.4);
+        }
+
+        .btn-book:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏢 施設予約システム</h1>
+            <div class="nav-buttons">
+                <a href="/" class="btn btn-secondary">← 検索に戻る</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- サイドバー -->
+            <div class="sidebar">
+                <div class="form-group">
+                    <label for="facility">施設を選択</label>
+                    <select id="facility">
+                        <option value="">施設を選択してください</option>
+                        {% for facility in facilities %}
+                        <option value="{{ facility }}">{{ facility }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">日付を選択</label>
+                    <input type="date" id="date">
+                </div>
+
+                <button class="btn btn-primary" style="width: 100%;" onclick="loadSchedule()">
+                    カレンダーを表示
+                </button>
+
+                <div id="selectionInfo" style="display: none;">
+                    <div class="selection-info">
+                        <div class="selection-info-title">選択中の時間</div>
+                        <div class="selection-details">
+                            <div id="selectedTime">選択なし</div>
+                        </div>
+                    </div>
+
+                    <div class="booking-form">
+                        <h3>予約情報</h3>
+                        <div class="form-group">
+                            <label for="eventTitle">タイトル</label>
+                            <input type="text" id="eventTitle" placeholder="例: 打ち合わせ">
+                        </div>
+                        <div class="form-group">
+                            <label for="participants">参加者（カンマ区切り）</label>
+                            <textarea id="participants" placeholder="例: 山田太郎, 鈴木花子"></textarea>
+                        </div>
+                        <button class="btn btn-book" onclick="bookSchedule()" id="bookButton">
+                            予約する
+                        </button>
+                        <div id="bookingResult"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- カレンダー -->
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <h2 id="calendarTitle">施設と日付を選択してください</h2>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-box legend-occupied"></div>
+                            <span>予約済み</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box legend-selected"></div>
+                            <span>選択中</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-box legend-available"></div>
+                            <span>予約可能</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="calendarContent">
+                    <div style="text-align: center; padding: 60px; color: #999;">
+                        施設と日付を選択して「カレンダーを表示」ボタンをクリックしてください
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isDragging = false;
+        let dragStartSlot = null;
+        let dragEndSlot = null;
+        let occupiedSlots = new Set();
+        let currentFacility = '';
+        let currentDate = '';
+
+        // 営業時間の設定（8:00 ~ 18:00）
+        const START_HOUR = 8;
+        const END_HOUR = 18;
+
+        // 今日の日付をデフォルトに設定
+        document.getElementById('date').valueAsDate = new Date();
+
+        // 時刻文字列を分数に変換
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // 分数を時刻文字列に変換
+        function minutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+        }
+
+        // スケジュールを読み込む
+        async function loadSchedule() {
+            const facility = document.getElementById('facility').value;
+            const date = document.getElementById('date').value;
+
+            if (!facility || !date) {
+                alert('施設と日付を選択してください');
+                return;
+            }
+
+            currentFacility = facility;
+            currentDate = date;
+
+            try {
+                const response = await fetch(`/api/events/${encodeURIComponent(facility)}/${date}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderCalendar(data.events);
+                    document.getElementById('calendarTitle').textContent = 
+                        `${facility} - ${date}`;
+                }
+            } catch (error) {
+                console.error('スケジュール読み込みエラー:', error);
+                alert('スケジュールの読み込みに失敗しました');
+            }
+        }
+
+        // カレンダーを描画
+        function renderCalendar(events) {
+            occupiedSlots.clear();
+            
+            let html = '<div class="calendar-grid">';
+            
+            // 時間ラベル
+            html += '<div class="time-labels">';
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                html += `<div class="time-slot-label">${hour}:00</div>`;
+            }
+            html += '</div>';
+
+            // スケジュールエリア
+            html += '<div class="schedule-area">';
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                const slotId = `slot-${hour}`;
+                html += `<div class="time-slot" id="${slotId}" data-hour="${hour}"
+                    onmousedown="startDrag(${hour})"
+                    onmousemove="updateDrag(${hour})"
+                    onmouseup="endDrag()"></div>`;
+            }
+
+            // イベントブロックを追加
+            events.forEach(event => {
+                const startMinutes = timeToMinutes(event.start_time);
+                const endMinutes = timeToMinutes(event.end_time);
+                
+                // 占有されているスロットを記録
+                const startHour = Math.floor(startMinutes / 60);
+                const endHour = Math.ceil(endMinutes / 60);
+                for (let h = startHour; h < endHour; h++) {
+                    if (h >= START_HOUR && h < END_HOUR) {
+                        occupiedSlots.add(h);
+                    }
+                }
+
+                // イベントブロックの位置を計算
+                const topPercent = ((startMinutes - START_HOUR * 60) / ((END_HOUR - START_HOUR) * 60)) * 100;
+                const heightPercent = ((endMinutes - startMinutes) / ((END_HOUR - START_HOUR) * 60)) * 100;
+
+                const badge = event.badge ? `<div class="event-badge">${event.badge}</div>` : '';
+                
+                html += `
+                    <div class="event-block" style="top: ${topPercent}%; height: ${heightPercent}%;">
+                        <div class="event-title">${event.title}</div>
+                        <div class="event-time">${event.start_time} - ${event.end_time}</div>
+                        ${badge}
+                    </div>
+                `;
+            });
+
+            html += '</div></div>';
+
+            document.getElementById('calendarContent').innerHTML = html;
+
+            // 占有されているスロットをマーク
+            occupiedSlots.forEach(hour => {
+                const slot = document.getElementById(`slot-${hour}`);
+                if (slot) {
+                    slot.classList.add('occupied');
+                }
+            });
+        }
+
+        // ドラッグ開始
+        function startDrag(hour) {
+            if (occupiedSlots.has(hour)) return;
+            
+            isDragging = true;
+            dragStartSlot = hour;
+            dragEndSlot = hour;
+            updateSelection();
+        }
+
+        // ドラッグ中
+        function updateDrag(hour) {
+            if (!isDragging) return;
+            if (occupiedSlots.has(hour)) return;
+            
+            dragEndSlot = hour;
+            updateSelection();
+        }
+
+        // ドラッグ終了
+        function endDrag() {
+            isDragging = false;
+            if (dragStartSlot !== null && dragEndSlot !== null) {
+                document.getElementById('selectionInfo').style.display = 'block';
+                updateSelectionInfo();
+            }
+        }
+
+        // 選択範囲を更新
+        function updateSelection() {
+            // すべてのスロットから選択を解除
+            for (let hour = START_HOUR; hour < END_HOUR; hour++) {
+                const slot = document.getElementById(`slot-${hour}`);
+                if (slot && !slot.classList.contains('occupied')) {
+                    slot.classList.remove('selected');
+                }
+            }
+
+            if (dragStartSlot === null || dragEndSlot === null) return;
+
+            // 選択範囲を計算
+            const startHour = Math.min(dragStartSlot, dragEndSlot);
+            const endHour = Math.max(dragStartSlot, dragEndSlot);
+
+            // 選択範囲をハイライト
+            for (let hour = startHour; hour <= endHour; hour++) {
+                const slot = document.getElementById(`slot-${hour}`);
+                if (slot && !slot.classList.contains('occupied')) {
+                    slot.classList.add('selected');
+                }
+            }
+        }
+
+        // 選択情報を更新
+        function updateSelectionInfo() {
+            if (dragStartSlot === null || dragEndSlot === null) return;
+
+            const startHour = Math.min(dragStartSlot, dragEndSlot);
+            const endHour = Math.max(dragStartSlot, dragEndSlot) + 1;
+
+            const startTime = minutesToTime(startHour * 60);
+            const endTime = minutesToTime(endHour * 60);
+
+            document.getElementById('selectedTime').innerHTML = `
+                <strong>${startTime} - ${endTime}</strong>
+            `;
+        }
+
+        // 予約を登録
+        async function bookSchedule() {
+            const title = document.getElementById('eventTitle').value.trim();
+            const participantsText = document.getElementById('participants').value.trim();
+
+            if (!title) {
+                alert('タイトルを入力してください');
+                return;
+            }
+
+            if (dragStartSlot === null || dragEndSlot === null) {
+                alert('時間を選択してください');
+                return;
+            }
+
+            const startHour = Math.min(dragStartSlot, dragEndSlot);
+            const endHour = Math.max(dragStartSlot, dragEndSlot) + 1;
+
+            const startTime = minutesToTime(startHour * 60);
+            const endTime = minutesToTime(endHour * 60);
+
+            const participants = participantsText ? 
+                participantsText.split(',').map(p => p.trim()).filter(p => p) : [];
+
+            const bookingData = {
+                facility: currentFacility,
+                date: currentDate,
+                start_time: startTime,
+                end_time: endTime,
+                title: title,
+                participants: participants
+            };
+
+            try {
+                const response = await fetch('/api/book', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                const data = await response.json();
+
+                const resultDiv = document.getElementById('bookingResult');
+                if (data.success) {
+                    resultDiv.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    
+                    // フォームをリセット
+                    document.getElementById('eventTitle').value = '';
+                    document.getElementById('participants').value = '';
+                    
+                    // 選択をクリア
+                    dragStartSlot = null;
+                    dragEndSlot = null;
+                    updateSelection();
+                    document.getElementById('selectionInfo').style.display = 'none';
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">${data.message}</div>`;
+                }
+            } catch (error) {
+                console.error('予約エラー:', error);
+                document.getElementById('bookingResult').innerHTML = 
+                    '<div class="alert alert-error">予約に失敗しました</div>';
+            }
+        }
+
+        // マウスアップイベントをドキュメント全体で監視
+        document.addEventListener('mouseup', endDrag);
+    </script>
+</body>
+</html>
+
