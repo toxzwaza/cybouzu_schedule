@@ -19,6 +19,18 @@ DB_CONFIG = {
     'collation': 'utf8mb4_unicode_ci'
 }
 
+# ログファイルのパス
+LOG_FILE = 'insert.log'
+
+
+def write_log(message, log_file=LOG_FILE):
+    """ログファイルにメッセージを書き込む"""
+    try:
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(message + '\n')
+    except Exception as e:
+        print(f'ログ書き込みエラー: {e}')
+
 
 def get_db_connection():
     """MySQLデータベースへの接続を取得"""
@@ -63,7 +75,7 @@ def get_participants_for_event(connection, event_id):
         return []
 
 
-def register_schedule_to_cybozu(driver, connection, event):
+def register_schedule_to_cybozu(driver, connection, event, log_messages=None):
     """Cybozuのスケジュール登録フォームにアクセスして時刻を設定"""
     print(f'\n--- スケジュール登録処理開始 (ID: {event["id"]}) ---')
     print(f'施設: {event["facility_name"]}')
@@ -90,7 +102,7 @@ def register_schedule_to_cybozu(driver, connection, event):
             print(f'エラー: 開始時刻のフォーマットが不正です: {event["start_datetime"]}')
             return False
         
-        start_hour = start_time_parts[0].strip()
+        start_hour = start_time_parts[0].strip().lstrip('0') or '0'  # 先頭の0を削除
         start_minute = start_time_parts[1].strip()
         
         # 分が"00"の場合は"0"に変換
@@ -120,7 +132,7 @@ def register_schedule_to_cybozu(driver, connection, event):
             print(f'エラー: 終了時刻のフォーマットが不正です: {event["end_datetime"]}')
             return False
         
-        end_hour = end_time_parts[0].strip()
+        end_hour = end_time_parts[0].strip().lstrip('0') or '0'  # 先頭の0を削除
         end_minute = end_time_parts[1].strip()
         
         # 分が"00"の場合は"0"に変換
@@ -239,10 +251,17 @@ def register_schedule_to_cybozu(driver, connection, event):
         except Error as e:
             print(f'警告: ステータス更新エラー: {e}')
         
+        # ログに登録成功を記録
+        if log_messages is not None:
+            log_messages.append(f'  [成功] ID:{event["id"]} | {event["date"]} {event["start_datetime"]}-{event["end_datetime"]} | {event["title"]}')
+        
         return True
         
     except Exception as e:
         print(f'エラーが発生しました: {e}')
+        # ログに登録失敗を記録
+        if log_messages is not None:
+            log_messages.append(f'  [失敗] ID:{event["id"]} | {event["date"]} {event["start_datetime"]}-{event["end_datetime"]} | {event["title"]} | エラー: {e}')
         return False
 
 
@@ -275,6 +294,14 @@ def login(driver):
 
 
 def main():
+    # 開始時刻を記録
+    start_time = datetime.now()
+    
+    # ログメッセージを格納するリスト
+    log_messages = []
+    log_messages.append('=' * 80)
+    log_messages.append(f'■ 実行開始: {start_time.strftime("%Y-%m-%d %H:%M:%S")}')
+    
     print('=' * 60)
     print('Cybozu処理スクリプトを開始します')
     print('=' * 60)
@@ -283,7 +310,12 @@ def main():
     print('データベースに接続中...')
     connection = get_db_connection()
     if not connection:
-        print('データベース接続に失敗しました。処理を終了します。')
+        error_msg = 'データベース接続に失敗しました。処理を終了します。'
+        print(error_msg)
+        log_messages.append(f'■ エラー: {error_msg}')
+        log_messages.append('=' * 80)
+        log_messages.append('')
+        write_log('\n'.join(log_messages))
         return
     
     print('データベース接続成功')
@@ -354,6 +386,8 @@ def main():
         
         if events:
             print(f'\n取得件数: {len(events)}件\n')
+            log_messages.append(f'■ 取得件数: {len(events)}件')
+            log_messages.append('')
             
             for idx, event in enumerate(events, 1):
                 print(f'--- [{idx}] ---')
@@ -394,7 +428,7 @@ def main():
             
             for idx, event in enumerate(events, 1):
                 print(f'\n[{idx}/{len(events)}] 処理中...')
-                result = register_schedule_to_cybozu(driver, connection, event)
+                result = register_schedule_to_cybozu(driver, connection, event, log_messages)
                 
                 if result:
                     success_count += 1
@@ -415,23 +449,48 @@ def main():
             print(f'合計: {len(events)}件')
             print('=' * 60)
             
+            # サマリーをログに追加
+            log_messages.append('')
+            log_messages.append(f'■ 処理結果サマリー')
+            log_messages.append(f'  成功: {success_count}件')
+            log_messages.append(f'  失敗: {fail_count}件')
+            log_messages.append(f'  合計: {len(events)}件')
+            
             # ブラウザを閉じる
             driver.quit()
             
         else:
             if has_status_column:
-                print('\nstatus=1のスケジュールは見つかりませんでした。')
-                print('登録処理をスキップします。')
+                skip_msg = 'status=1のスケジュールは見つかりませんでした。登録処理をスキップします。'
+                print(f'\n{skip_msg}')
             else:
-                print('\nスケジュールは見つかりませんでした。')
-                print('登録処理をスキップします。')
+                skip_msg = 'スケジュールは見つかりませんでした。登録処理をスキップします。'
+                print(f'\n{skip_msg}')
+            
+            log_messages.append(f'■ {skip_msg}')
             
     except Error as e:
-        print(f'データ取得エラー: {e}')
+        error_msg = f'データ取得エラー: {e}'
+        print(error_msg)
+        log_messages.append(f'■ エラー: {error_msg}')
     
     print('\n' + '=' * 60)
     print('全処理完了')
     print('=' * 60)
+    
+    # 終了時刻を記録
+    end_time = datetime.now()
+    processing_time = (end_time - start_time).total_seconds()
+    
+    log_messages.append('')
+    log_messages.append(f'■ 実行終了: {end_time.strftime("%Y-%m-%d %H:%M:%S")}')
+    log_messages.append(f'■ 処理時間: {processing_time:.2f}秒')
+    log_messages.append('=' * 80)
+    log_messages.append('')
+    
+    # ログファイルに書き込み
+    write_log('\n'.join(log_messages))
+    print(f'\nログを {LOG_FILE} に保存しました。')
     
     # クリーンアップ
     connection.close()
