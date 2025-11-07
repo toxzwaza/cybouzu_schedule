@@ -1,0 +1,10 @@
+<option value="340">社長室</option>
+<option value="339">応接室</option>
+<option value="341">事務室面談テーブル</option>
+<option value="342">社員休憩室</option>
+<option value="343">二階食堂</option>
+<option value="660">技術室</option>
+<option value="661">技術室奥(3Dスキャナ)</option>
+<option value="662">品証検査場2F西</option>
+<option value="663">品証検査場2F東</option>
+<option value="654">社外会議室</option>
